@@ -43,4 +43,10 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 Admin login is available at `/login` (not linked publicly). The seed script creates an admin user.
 
+## Deploy (Vercel + AWS RDS)
+
+- Use a hosted MySQL database (AWS RDS) — Vercel cannot connect to `localhost`.
+- Follow the step-by-step guide in [docs/deploy-vercel-rds.md](docs/deploy-vercel-rds.md).
+- Use [rds.env.template](rds.env.template) to fill in Vercel environment variables.
+
 
