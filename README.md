@@ -49,4 +49,9 @@ Admin login is available at `/login` (not linked publicly). The seed script crea
 - Follow the step-by-step guide in [docs/deploy-vercel-rds.md](docs/deploy-vercel-rds.md).
 - Use [rds.env.template](rds.env.template) to fill in Vercel environment variables.
 
+## Deploy (Vercel + Supabase)
+
+- Follow [docs/deploy-vercel-supabase.md](docs/deploy-vercel-supabase.md).
+- Use [supabase.env.template](supabase.env.template) to fill in Vercel environment variables.
+
 
