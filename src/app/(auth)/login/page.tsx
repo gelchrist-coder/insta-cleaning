@@ -109,9 +109,7 @@ export default function LoginPage() {
                 <input type="checkbox" className="rounded border-gray-300 text-blue-600" />
                 <span className="text-gray-600">Remember me</span>
               </label>
-              <Link href="/forgot-password" className="text-blue-600 hover:underline">
-                Forgot password?
-              </Link>
+              <span className="text-gray-500">Need a reset? Contact admin.</span>
             </div>
 
             <Button type="submit" className="w-full" disabled={loading}>
@@ -119,11 +117,8 @@ export default function LoginPage() {
             </Button>
           </form>
 
-          <div className="mt-6 text-center text-sm">
-            <span className="text-gray-600">Don&apos;t have an account?</span>{" "}
-            <Link href="/register" className="text-blue-600 hover:underline font-medium">
-              Create an account
-            </Link>
+          <div className="mt-6 text-center text-sm text-gray-600">
+            Accounts are created by admin only.
           </div>
         </CardContent>
       </Card>
