@@ -200,12 +200,12 @@ export default function HomePage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-16 lg:py-24 bg-gray-900 text-white">
+      <section className="py-16 lg:py-24 bg-slate-800 text-white">
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-3xl lg:text-4xl font-bold mb-4">
             Ready to Get Started?
           </h2>
-          <p className="text-lg text-gray-400 mb-8 max-w-2xl mx-auto">
+          <p className="text-lg text-slate-100 mb-8 max-w-2xl mx-auto">
             Book your professional cleaning service today and experience the Insta-Cleaning difference.
           </p>
           <Link href="/book">

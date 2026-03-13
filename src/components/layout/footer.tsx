@@ -3,14 +3,14 @@ import { Sparkles, Phone, Mail, MapPin, Facebook, Twitter, Instagram } from "luc
 
 export function Footer() {
   return (
-    <footer className="bg-gray-900 text-gray-300">
+    <footer className="bg-slate-800 text-slate-100">
       <div className="container mx-auto px-4 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Company info */}
           <div className="space-y-4">
             <div className="flex items-center gap-2">
               <Sparkles className="h-8 w-8 text-blue-500" />
-              <span className="text-xl font-bold text-white">Insta-Cleaning</span>
+                <span className="text-xl font-bold text-white">Insta-Cleaning</span>
             </div>
             <p className="text-sm">
               Professional cleaning services for homes, offices, churches, events, and more. 
@@ -74,7 +74,7 @@ export function Footer() {
         </div>
         
         {/* Bottom bar */}
-        <div className="border-t border-gray-800 mt-8 pt-8 text-center text-sm">
+        <div className="border-t border-slate-700 mt-8 pt-8 text-center text-sm text-slate-200">
           <p>&copy; {new Date().getFullYear()} Insta-Cleaning. All rights reserved.</p>
         </div>
       </div>
