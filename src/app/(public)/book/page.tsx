@@ -25,6 +25,74 @@ import {
 } from "lucide-react"
 import { timeSlots, formatPrice } from "@/lib/utils"
 
+declare global {
+  interface Window {
+    google?: {
+      maps?: {
+        places?: {
+          Autocomplete: new (
+            input: HTMLInputElement,
+            opts?: Record<string, unknown>
+          ) => {
+            addListener: (event: string, handler: () => void) => void
+            getPlace: () => {
+              place_id?: string
+              name?: string
+              formatted_address?: string
+              geometry?: {
+                location?: {
+                  lat: () => number
+                  lng: () => number
+                }
+              }
+              address_components?: Array<{
+                long_name: string
+                short_name: string
+                types: string[]
+              }>
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+function extractAddressParts(
+  components: Array<{ long_name: string; short_name: string; types: string[] }> | undefined,
+  formattedAddress: string | undefined
+) {
+  if (!components || components.length === 0) {
+    return {
+      address: formattedAddress || "",
+      city: "",
+      state: "",
+      zipCode: "",
+    }
+  }
+
+  const find = (type: string) => components.find((c) => c.types.includes(type))
+
+  const streetNumber = find("street_number")?.long_name || ""
+  const route = find("route")?.long_name || ""
+  const neighborhood = find("neighborhood")?.long_name || ""
+  const sublocality = find("sublocality")?.long_name || find("sublocality_level_1")?.long_name || ""
+  const locality = find("locality")?.long_name || find("postal_town")?.long_name || ""
+  const adminArea2 = find("administrative_area_level_2")?.long_name || ""
+  const adminArea1 = find("administrative_area_level_1")?.short_name || ""
+  const postalCode = find("postal_code")?.long_name || ""
+
+  const street = [streetNumber, route].filter(Boolean).join(" ").trim()
+  const fallbackAddress = [neighborhood, sublocality].filter(Boolean).join(", ").trim()
+
+  return {
+    address: street || fallbackAddress || formattedAddress || "",
+    city: locality || adminArea2,
+    state: adminArea1,
+    zipCode: postalCode,
+  }
+}
+
 type ApiService = {
   id: string
   name: string
@@ -69,11 +137,16 @@ interface BookingData {
   address: string
   city: string
   state: string
+  zipCode: string
   specialInstructions: string
   contactMethod: string
   guestName: string
   guestEmail: string
   guestPhone: string
+  placeId: string
+  placeLabel: string
+  latitude: string
+  longitude: string
 }
 
 const initialData: BookingData = {
@@ -85,11 +158,16 @@ const initialData: BookingData = {
   address: "",
   city: "",
   state: "",
+  zipCode: "",
   specialInstructions: "",
   contactMethod: "EMAIL",
   guestName: "",
   guestEmail: "",
   guestPhone: "",
+  placeId: "",
+  placeLabel: "",
+  latitude: "",
+  longitude: "",
 }
 
 export default function BookingPage() {
@@ -103,11 +181,24 @@ export default function BookingPage() {
   const [services, setServices] = useState<ApiService[]>([])
   const [propertyTypes, setPropertyTypes] = useState<ApiPropertyType[]>([])
   const [catalogLoading, setCatalogLoading] = useState(true)
+  const [placesReady, setPlacesReady] = useState(false)
+  const [placesError, setPlacesError] = useState("")
   
   const totalSteps = 5
 
   const updateData = (field: keyof BookingData, value: string) => {
     setData(prev => ({ ...prev, [field]: value }))
+  }
+
+  const setAddressManually = (value: string) => {
+    setData((prev) => ({
+      ...prev,
+      address: value,
+      placeId: "",
+      placeLabel: "",
+      latitude: "",
+      longitude: "",
+    }))
   }
 
   const selectedService = useMemo(
@@ -154,6 +245,78 @@ export default function BookingPage() {
     }
   }, [])
 
+  useEffect(() => {
+    const key = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+    if (!key) {
+      setPlacesError("Google Places is not configured yet. You can still enter your address manually.")
+      return
+    }
+
+    const existingScript = document.getElementById("google-maps-places-script") as HTMLScriptElement | null
+    if (window.google?.maps?.places) {
+      setPlacesReady(true)
+      return
+    }
+
+    const handleLoad = () => {
+      if (window.google?.maps?.places) {
+        setPlacesReady(true)
+      } else {
+        setPlacesError("Unable to initialize Google Places. Please enter your address manually.")
+      }
+    }
+
+    if (existingScript) {
+      existingScript.addEventListener("load", handleLoad)
+      return () => {
+        existingScript.removeEventListener("load", handleLoad)
+      }
+    }
+
+    const script = document.createElement("script")
+    script.id = "google-maps-places-script"
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(key)}&libraries=places`
+    script.async = true
+    script.defer = true
+    script.onload = handleLoad
+    script.onerror = () => {
+      setPlacesError("Unable to load Google Places. Please enter your address manually.")
+    }
+    document.head.appendChild(script)
+  }, [])
+
+  useEffect(() => {
+    if (!placesReady) return
+    if (!window.google?.maps?.places) return
+
+    const input = document.getElementById("google-place-input") as HTMLInputElement | null
+    if (!input) return
+
+    const autocomplete = new window.google.maps.places.Autocomplete(input, {
+      fields: ["address_components", "formatted_address", "geometry", "name", "place_id"],
+      types: ["geocode", "establishment"],
+    })
+
+    autocomplete.addListener("place_changed", () => {
+      const place = autocomplete.getPlace()
+      const parts = extractAddressParts(place.address_components, place.formatted_address)
+      const lat = place.geometry?.location?.lat?.()
+      const lng = place.geometry?.location?.lng?.()
+
+      setData((prev) => ({
+        ...prev,
+        address: parts.address || prev.address,
+        city: parts.city || prev.city,
+        state: parts.state || prev.state,
+        zipCode: parts.zipCode || prev.zipCode,
+        placeId: place.place_id || "",
+        placeLabel: place.name || place.formatted_address || "",
+        latitude: typeof lat === "number" ? String(lat) : "",
+        longitude: typeof lng === "number" ? String(lng) : "",
+      }))
+    })
+  }, [placesReady])
+
   // Get minimum date (tomorrow)
   const minDate = new Date()
   minDate.setDate(minDate.getDate() + 1)
@@ -186,6 +349,8 @@ export default function BookingPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...data,
+          latitude: data.latitude ? Number(data.latitude) : undefined,
+          longitude: data.longitude ? Number(data.longitude) : undefined,
           estimatedPrice: selectedService?.basePrice || 0,
         }),
       })
@@ -381,13 +546,25 @@ export default function BookingPage() {
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Street Address *
+                    Search Address or Landmark *
                   </label>
                   <Input
-                    placeholder="123 Main Street"
+                    id="google-place-input"
+                    placeholder="Search for an address, mall, church, office, or landmark"
                     value={data.address}
-                    onChange={(e) => updateData('address', e.target.value)}
+                    onChange={(e) => setAddressManually(e.target.value)}
                   />
+                  <p className="text-xs text-gray-600 mt-1">
+                    Start typing and choose a suggestion to capture exact coordinates.
+                  </p>
+                  {placesError && (
+                    <p className="text-xs text-amber-700 mt-1">{placesError}</p>
+                  )}
+                  {!placesError && placesReady && data.latitude && data.longitude && (
+                    <p className="text-xs text-green-700 mt-1">
+                      Location captured: {Number(data.latitude).toFixed(6)}, {Number(data.longitude).toFixed(6)}
+                    </p>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -526,6 +703,18 @@ export default function BookingPage() {
                       <span className="text-gray-600">Location:</span>
                       <span className="font-medium text-right">{data.address}, {data.city}, {data.state}</span>
                     </div>
+                    {data.placeLabel && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Selected Place:</span>
+                        <span className="font-medium text-right">{data.placeLabel}</span>
+                      </div>
+                    )}
+                    {data.latitude && data.longitude && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Coordinates:</span>
+                        <span className="font-medium text-right">{Number(data.latitude).toFixed(6)}, {Number(data.longitude).toFixed(6)}</span>
+                      </div>
+                    )}
                     <div className="border-t pt-2 mt-2">
                       <div className="flex justify-between">
                         <span className="font-semibold">Estimated Price:</span>

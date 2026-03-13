@@ -110,6 +110,16 @@ export async function POST(request: Request) {
     const guestEmail = data.guestEmail && data.guestEmail.trim() !== "" ? data.guestEmail.trim() : null
     const guestPhone = data.guestPhone.trim()
 
+    const locationMeta: string[] = []
+    if (data.placeLabel) locationMeta.push(`Selected place: ${data.placeLabel}`)
+    if (data.placeId) locationMeta.push(`Google place ID: ${data.placeId}`)
+    if (typeof data.latitude === "number" && typeof data.longitude === "number") {
+      locationMeta.push(`Coordinates: ${data.latitude}, ${data.longitude}`)
+    }
+    const combinedInstructions = [data.specialInstructions?.trim() || "", ...locationMeta]
+      .filter(Boolean)
+      .join("\n")
+
     // Verify service and property type exist
     const service = await prisma.service.findUnique({
       where: { id: data.serviceId },
@@ -151,7 +161,7 @@ export async function POST(request: Request) {
         city: data.city,
         state: data.state,
         ...(data.zipCode ? { zipCode: data.zipCode } : {}),
-        specialInstructions: data.specialInstructions,
+        ...(combinedInstructions ? { specialInstructions: combinedInstructions } : {}),
         estimatedPrice: body.estimatedPrice || service.basePrice,
         status: "PENDING",
         contactMethod: data.contactMethod,

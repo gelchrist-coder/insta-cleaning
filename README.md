@@ -24,7 +24,12 @@ This project uses Prisma with MySQL so you can manage/view the database in MySQL
 - If your password contains special URL characters (like `@`, `:`, `/`, `#`), URL-encode them.
 	- Example: `@` becomes `%40`.
 
-3) Push schema + seed
+3) Set Google Places API key (for booking address autocomplete)
+
+- Add `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` to your `.env`.
+- Enable the Places API in your Google Cloud project.
+
+4) Push schema + seed
 
 ```bash
 npm run db:push

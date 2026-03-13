@@ -73,6 +73,10 @@ export interface BookingFormData {
   city: string
   state: string
   zipCode?: string
+  placeId?: string
+  placeLabel?: string
+  latitude?: number
+  longitude?: number
   specialInstructions?: string
   contactMethod: ContactMethod
   guestName?: string

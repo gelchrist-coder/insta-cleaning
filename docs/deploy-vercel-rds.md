@@ -23,6 +23,7 @@ Required:
 - `DATABASE_URL`
 - `AUTH_SECRET`
 - `NEXTAUTH_URL`
+- `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` (Google Places browser API key)
 
 Recommended:
 - Use different values per environment (Preview vs Production).

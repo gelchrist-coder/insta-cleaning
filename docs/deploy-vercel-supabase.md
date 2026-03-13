@@ -20,6 +20,7 @@ Vercel → Project → Settings → Environment Variables:
 - `AUTH_SECRET` (long random string)
 - `NEXTAUTH_URL` (your deployed https url)
 - `AUTH_TRUST_HOST=true`
+- `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` (Google Places browser API key)
 
 ## 3) Run migrations + seed (first time)
 
