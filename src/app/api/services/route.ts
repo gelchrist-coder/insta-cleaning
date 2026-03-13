@@ -4,6 +4,37 @@ import { auth } from "@/lib/auth"
 import { serviceSchema } from "@/lib/validations"
 import { Prisma } from "@prisma/client"
 
+const fallbackServices = [
+  {
+    id: "standard-cleaning",
+    name: "Standard Cleaning",
+    description: "Regular cleaning service for homes and offices.",
+    basePrice: 99,
+    duration: 120,
+  },
+  {
+    id: "deep-cleaning",
+    name: "Deep Cleaning",
+    description: "Top-to-bottom detailed cleaning for a deeper reset.",
+    basePrice: 199,
+    duration: 240,
+  },
+  {
+    id: "move-in-out",
+    name: "Move In/Out Cleaning",
+    description: "Comprehensive cleaning for empty or newly occupied spaces.",
+    basePrice: 299,
+    duration: 360,
+  },
+  {
+    id: "office-cleaning",
+    name: "Office Cleaning",
+    description: "Professional cleaning tailored to office and commercial spaces.",
+    basePrice: 149,
+    duration: 180,
+  },
+]
+
 // GET /api/services - Get all services
 export async function GET() {
   try {
@@ -22,11 +53,8 @@ export async function GET() {
       return NextResponse.json(services)
     }
 
-    console.error("Error fetching services:", error)
-    return NextResponse.json(
-      { error: "Failed to fetch services" },
-      { status: 500 }
-    )
+    console.error("Error fetching services, serving fallback data:", error)
+    return NextResponse.json(fallbackServices)
   }
 }
 
