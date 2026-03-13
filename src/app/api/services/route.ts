@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { serviceSchema } from "@/lib/validations"
+import { Prisma } from "@prisma/client"
 
 // GET /api/services - Get all services
 export async function GET() {
@@ -13,6 +14,14 @@ export async function GET() {
 
     return NextResponse.json(services)
   } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2022") {
+      // Backward-compatible fallback for databases missing the isActive column.
+      const services = await prisma.service.findMany({
+        orderBy: { name: "asc" },
+      })
+      return NextResponse.json(services)
+    }
+
     console.error("Error fetching services:", error)
     return NextResponse.json(
       { error: "Failed to fetch services" },
