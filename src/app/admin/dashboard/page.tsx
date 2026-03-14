@@ -23,46 +23,54 @@ export default function AdminDashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [recentBookings, setRecentBookings] = useState<Booking[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
+
+  const fetchData = async () => {
+    setLoading(true)
+    setError("")
+    try {
+      const [recentRes, allRes] = await Promise.all([
+        fetch("/api/bookings?limit=5"),
+        fetch("/api/bookings"),
+      ])
+
+      if (!recentRes.ok || !allRes.ok) {
+        throw new Error("Failed to load dashboard data")
+      }
+
+      const [bookings, allBookings] = await Promise.all([
+        recentRes.json(),
+        allRes.json(),
+      ])
+
+      setRecentBookings(bookings)
+
+      const today = new Date().toDateString()
+      const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+
+      setStats({
+        totalBookings: allBookings.length,
+        pendingBookings: allBookings.filter((b: Booking) => b.status === "PENDING").length,
+        completedBookings: allBookings.filter((b: Booking) => b.status === "COMPLETED").length,
+        totalRevenue: allBookings
+          .filter((b: Booking) => b.status === "COMPLETED")
+          .reduce((sum: number, b: Booking) => sum + (b.finalPrice || b.estimatedPrice), 0),
+        todayBookings: allBookings.filter((b: Booking) =>
+          new Date(b.scheduledDate).toDateString() === today
+        ).length,
+        weeklyBookings: allBookings.filter((b: Booking) =>
+          new Date(b.createdAt) >= weekAgo
+        ).length,
+      })
+    } catch (err) {
+      console.error("Failed to fetch data:", err)
+      setError(err instanceof Error ? err.message : "Failed to load dashboard data")
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        // Fetch recent bookings
-        const bookingsRes = await fetch("/api/bookings?limit=5")
-        if (bookingsRes.ok) {
-          const bookings = await bookingsRes.json()
-          setRecentBookings(bookings)
-          
-          // Calculate stats from bookings (in real app, this would be a separate API)
-          const allBookingsRes = await fetch("/api/bookings")
-          if (allBookingsRes.ok) {
-            const allBookings = await allBookingsRes.json()
-            const today = new Date().toDateString()
-            const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-            
-            setStats({
-              totalBookings: allBookings.length,
-              pendingBookings: allBookings.filter((b: Booking) => b.status === "PENDING").length,
-              completedBookings: allBookings.filter((b: Booking) => b.status === "COMPLETED").length,
-              totalRevenue: allBookings
-                .filter((b: Booking) => b.status === "COMPLETED")
-                .reduce((sum: number, b: Booking) => sum + (b.finalPrice || b.estimatedPrice), 0),
-              todayBookings: allBookings.filter((b: Booking) => 
-                new Date(b.scheduledDate).toDateString() === today
-              ).length,
-              weeklyBookings: allBookings.filter((b: Booking) => 
-                new Date(b.createdAt) >= weekAgo
-              ).length,
-            })
-          }
-        }
-      } catch (error) {
-        console.error("Failed to fetch data:", error)
-      } finally {
-        setLoading(false)
-      }
-    }
-
     fetchData()
   }, [])
 
@@ -76,6 +84,13 @@ export default function AdminDashboardPage() {
 
   return (
     <div className="space-y-6">
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700 flex items-center justify-between gap-3">
+          <span>{error}</span>
+          <Button variant="outline" size="sm" onClick={fetchData}>Retry</Button>
+        </div>
+      )}
+
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
