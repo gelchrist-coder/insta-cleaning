@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { signIn } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
@@ -11,11 +11,17 @@ import { Sparkles, Mail, Lock, Eye, EyeOff } from "lucide-react"
 
 export default function LoginPage() {
   const router = useRouter()
+  const [isRegistered, setIsRegistered] = useState(false)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    setIsRegistered(params.get("registered") === "1")
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -54,6 +60,12 @@ export default function LoginPage() {
           <CardDescription>Sign in to your account to manage your bookings</CardDescription>
         </CardHeader>
         <CardContent>
+          {isRegistered && (
+            <div className="mb-4 p-3 bg-green-50 text-green-700 rounded-lg text-sm">
+              Account created successfully. Please sign in.
+            </div>
+          )}
+
           {error && (
             <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-lg text-sm">
               {error}
@@ -118,7 +130,10 @@ export default function LoginPage() {
           </form>
 
           <div className="mt-6 text-center text-sm text-gray-600">
-            Accounts are created by admin only.
+            Don&apos;t have an account?{" "}
+            <Link href="/register" className="text-blue-600 hover:text-blue-700 font-medium">
+              Create one
+            </Link>
           </div>
         </CardContent>
       </Card>
