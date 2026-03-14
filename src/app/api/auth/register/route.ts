@@ -1,8 +1,20 @@
 import { NextResponse } from "next/server"
 import { hash } from "bcryptjs"
+import { timingSafeEqual } from "node:crypto"
 import { Prisma } from "@prisma/client"
 import prisma from "@/lib/prisma"
 import { registerSchema } from "@/lib/validations"
+
+function isValidInviteToken(provided: string, expected: string) {
+  const providedBuffer = Buffer.from(provided)
+  const expectedBuffer = Buffer.from(expected)
+
+  if (providedBuffer.length !== expectedBuffer.length) {
+    return false
+  }
+
+  return timingSafeEqual(providedBuffer, expectedBuffer)
+}
 
 async function createUserWithSchemaFallback(input: {
   name: string
@@ -17,7 +29,7 @@ async function createUserWithSchemaFallback(input: {
         email: input.email,
         password: input.hashedPassword,
         phone: input.phone || null,
-        role: "CUSTOMER",
+        role: "ADMIN",
       },
       select: { id: true },
     })
@@ -36,7 +48,7 @@ async function createUserWithSchemaFallback(input: {
           name: input.name,
           email: input.email,
           password: input.hashedPassword,
-          role: "CUSTOMER",
+          role: "ADMIN",
         },
         select: { id: true },
       })
@@ -63,6 +75,29 @@ async function createUserWithSchemaFallback(input: {
 export async function POST(request: Request) {
   try {
     const body = await request.json()
+    const inviteToken =
+      typeof (body as { inviteToken?: unknown }).inviteToken === "string"
+        ? (body as { inviteToken: string }).inviteToken.trim()
+        : ""
+    const expectedInviteToken = process.env.ADMIN_INVITE_TOKEN?.trim()
+
+    if (!expectedInviteToken) {
+      return NextResponse.json(
+        {
+          error:
+            "Admin registration is disabled because ADMIN_INVITE_TOKEN is not configured.",
+        },
+        { status: 503 }
+      )
+    }
+
+    if (!isValidInviteToken(inviteToken, expectedInviteToken)) {
+      return NextResponse.json(
+        { error: "Invalid or missing admin invite token." },
+        { status: 403 }
+      )
+    }
+
     const result = registerSchema.safeParse(body)
 
     if (!result.success) {
@@ -119,6 +154,28 @@ export async function POST(request: Request) {
           { status: 503 }
         )
       }
+    }
+
+    if (error instanceof Prisma.PrismaClientInitializationError) {
+      const message = error.message.toLowerCase()
+
+      if (message.includes("tenant or user not found")) {
+        return NextResponse.json(
+          {
+            error:
+              "Database credentials are invalid. Verify DATABASE_URL and DIRECT_URL in your deployment environment.",
+          },
+          { status: 503 }
+        )
+      }
+
+      return NextResponse.json(
+        {
+          error:
+            "Database connection could not be established. Please verify database environment variables.",
+        },
+        { status: 503 }
+      )
     }
 
     console.error("Registration error:", error)

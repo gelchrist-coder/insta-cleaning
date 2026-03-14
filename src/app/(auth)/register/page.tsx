@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -10,6 +10,7 @@ import { Sparkles, Mail, Lock, Eye, EyeOff, User, Phone } from "lucide-react"
 
 export default function RegisterPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [phone, setPhone] = useState("")
@@ -19,6 +20,8 @@ export default function RegisterPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+  const inviteToken = searchParams.get("invite")?.trim() || ""
+  const registrationLocked = inviteToken.length === 0
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -26,6 +29,11 @@ export default function RegisterPage() {
 
     if (password !== confirmPassword) {
       setError("Passwords do not match")
+      return
+    }
+
+    if (registrationLocked) {
+      setError("A valid admin invite link is required to create an account")
       return
     }
 
@@ -39,6 +47,7 @@ export default function RegisterPage() {
           email,
           phone,
           password,
+          inviteToken,
         }),
       })
 
@@ -65,9 +74,15 @@ export default function RegisterPage() {
             <span className="text-xl font-bold text-gray-900">Insta-Cleaning</span>
           </Link>
           <CardTitle className="text-2xl">Create Account</CardTitle>
-          <CardDescription>Sign up to track bookings and manage your profile</CardDescription>
+          <CardDescription>Create an admin account for dashboard access</CardDescription>
         </CardHeader>
         <CardContent>
+          {registrationLocked && (
+            <div className="mb-4 p-3 bg-amber-50 text-amber-700 rounded-lg text-sm">
+              Admin registration is invite-only. Use a valid invite link from the system owner.
+            </div>
+          )}
+
           {error && (
             <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-lg text-sm">
               {error}
@@ -179,8 +194,8 @@ export default function RegisterPage() {
               </div>
             </div>
 
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Creating account..." : "Create Account"}
+            <Button type="submit" className="w-full" disabled={loading || registrationLocked}>
+              {loading ? "Creating admin account..." : "Create Admin Account"}
             </Button>
           </form>
 

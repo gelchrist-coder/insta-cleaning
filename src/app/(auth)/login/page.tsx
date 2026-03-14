@@ -38,7 +38,7 @@ export default function LoginPage() {
       if (result?.error) {
         setError("Invalid email or password")
       } else {
-        router.push("/customer/dashboard")
+        router.push("/admin/dashboard")
         router.refresh()
       }
     } catch (err) {
@@ -57,7 +57,7 @@ export default function LoginPage() {
             <span className="text-xl font-bold text-gray-900">Insta-Cleaning</span>
           </Link>
           <CardTitle className="text-2xl">Welcome Back</CardTitle>
-          <CardDescription>Sign in to your account to manage your bookings</CardDescription>
+          <CardDescription>Sign in to access the admin dashboard</CardDescription>
         </CardHeader>
         <CardContent>
           {isRegistered && (
@@ -130,10 +130,7 @@ export default function LoginPage() {
           </form>
 
           <div className="mt-6 text-center text-sm text-gray-600">
-            Don&apos;t have an account?{" "}
-            <Link href="/register" className="text-blue-600 hover:text-blue-700 font-medium">
-              Create one
-            </Link>
+            Admin onboarding is invite-only. Contact the system owner for access.
           </div>
         </CardContent>
       </Card>
